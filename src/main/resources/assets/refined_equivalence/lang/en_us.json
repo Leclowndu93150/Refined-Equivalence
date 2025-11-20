@@ -1,6 +1,7 @@
 {
   "block.refined_equivalence.emc_link": "EMC Link",
   "block.refined_equivalence.emc_link.priority.help": "Set storage priority for this EMC Link",
+  "block.refined_equivalence.emc_link.tooltip": "Connects ProjectE EMC to Refined Storage 2. Allows storing and withdrawing items using EMC. Sneak + right-click to bind to your transmutation knowledge.",
   "itemGroup.refined_equivalence": "Refined Equivalence",
   "message.refined_equivalence.emc_link.bound": "Bound to %s",
   "message.refined_equivalence.emc_link.unbound": "Not bound",

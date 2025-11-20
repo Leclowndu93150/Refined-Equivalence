@@ -1,6 +1,7 @@
 package com.leclowndu93150.refined_equivalence.registry;
 
 import com.leclowndu93150.refined_equivalence.RefinedEquivalence;
+import com.leclowndu93150.refined_equivalence.item.EmcLinkBlockItem;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -13,7 +14,7 @@ public final class ModItems {
 
     public static final DeferredItem<BlockItem> EMC_LINK = ITEMS.register(
         "emc_link",
-        () -> new BlockItem(ModBlocks.EMC_LINK.get(), new Item.Properties())
+        () -> new EmcLinkBlockItem(ModBlocks.EMC_LINK.get(), new Item.Properties())
     );
 
     private ModItems() {
