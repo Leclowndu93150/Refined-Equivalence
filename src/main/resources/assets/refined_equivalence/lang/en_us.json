@@ -1,0 +1,8 @@
+{
+  "block.refined_equivalence.emc_link": "EMC Link",
+  "block.refined_equivalence.emc_link.priority.help": "Set storage priority for this EMC Link",
+  "itemGroup.refined_equivalence": "Refined Equivalence",
+  "message.refined_equivalence.emc_link.bound": "Bound to %s",
+  "message.refined_equivalence.emc_link.unbound": "Not bound",
+  "message.refined_equivalence.emc_link.owner": "Owner: %s"
+}

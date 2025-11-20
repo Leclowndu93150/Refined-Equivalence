@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "connected=false": {
+      "model": "refined_equivalence:block/emc_link"
+    },
+    "connected=true": {
+      "model": "refined_equivalence:block/emc_link"
+    }
+  }
+}

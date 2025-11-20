@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "RPR",
+    "PCP",
+    "RPR"
+  ],
+  "key": {
+    "R": {
+      "item": "refinedstorage:advanced_processor"
+    },
+    "P": {
+      "item": "projecte:philosophers_stone"
+    },
+    "C": {
+      "item": "refinedstorage:machine_casing"
+    }
+  },
+  "result": {
+    "item": "refined_equivalence:emc_link"
+  }
+}
