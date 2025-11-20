@@ -139,7 +139,7 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
         if (inserted == 0) {
             return Amount.ZERO;
         }
-        return new Amount(inserted, inserted);
+        return new Amount(inserted, 0);
     }
 
     @Override
@@ -148,7 +148,7 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
         if (extracted == 0) {
             return Amount.ZERO;
         }
-        return new Amount(extracted, extracted);
+        return new Amount(extracted, 0);
     }
 
     public void refreshCache() {
