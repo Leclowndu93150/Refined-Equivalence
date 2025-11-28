@@ -16,8 +16,10 @@ import com.refinedmods.refinedstorage.common.api.support.network.NetworkNodeCont
 import com.refinedmods.refinedstorage.common.support.containermenu.ExtendedMenuProvider;
 import com.refinedmods.refinedstorage.common.support.network.ColoredConnectionStrategy;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import moze_intel.projecte.api.capabilities.IKnowledgeProvider;
 import moze_intel.projecte.api.proxy.ITransmutationProxy;
@@ -45,6 +47,9 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
     private static final String TAG_PRIORITY = "Priority";
 
     private static volatile boolean worldUnloading;
+
+    // Track all active EMC Link blocks for knowledge change notifications
+    private static final Map<BlockPos, EmcLinkBlockEntity> ACTIVE_BLOCKS = new ConcurrentHashMap<>();
 
     private final EmcLinkNetworkNode networkNode;
     private final NetworkNodeContainerProvider containerProvider;
@@ -113,6 +118,7 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
     public void onLoad() {
         super.onLoad();
         if (level != null && !level.isClientSide()) {
+            ACTIVE_BLOCKS.put(worldPosition, this);
             nodeLifecycle.resetAfterDataLoad();
             nodeLifecycle.requestInitialization("load");
         }
@@ -120,6 +126,7 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
 
     @Override
     public void setRemoved() {
+        ACTIVE_BLOCKS.remove(worldPosition);
         if (!nodeLifecycle.isRemoved()) {
             nodeLifecycle.shutdown("removed", false);
         }
@@ -128,6 +135,7 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
 
     @Override
     public void onChunkUnloaded() {
+        ACTIVE_BLOCKS.remove(worldPosition);
         if (!nodeLifecycle.isRemoved()) {
             nodeLifecycle.shutdown("chunk_unloaded", true);
         }
@@ -229,10 +237,21 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
 
     public static void setWorldUnloading(final boolean unloading) {
         worldUnloading = unloading;
+        if (unloading) {
+            ACTIVE_BLOCKS.clear();
+        }
     }
 
     public static boolean isWorldUnloading() {
         return worldUnloading;
+    }
+
+    public static void onKnowledgeChanged(final UUID playerUUID) {
+        for (EmcLinkBlockEntity blockEntity : ACTIVE_BLOCKS.values()) {
+            if (playerUUID.equals(blockEntity.ownerId)) {
+                blockEntity.storage.invalidateCache();
+            }
+        }
     }
 
     public int getPriority() {

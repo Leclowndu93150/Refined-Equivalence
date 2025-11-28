@@ -9,6 +9,7 @@ import com.leclowndu93150.refined_equivalence.registry.ModItems;
 import com.leclowndu93150.refined_equivalence.registry.ModMenus;
 import com.mojang.logging.LogUtils;
 
+import moze_intel.projecte.api.event.PlayerKnowledgeChangeEvent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -35,6 +36,7 @@ public final class RefinedEquivalence {
 
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerKnowledgeChange);
     }
 
     private void registerCapabilities(final RegisterCapabilitiesEvent event) {
@@ -47,5 +49,9 @@ public final class RefinedEquivalence {
 
     private void onServerStopping(final ServerStoppingEvent event) {
         EmcLinkBlockEntity.setWorldUnloading(true);
+    }
+
+    private void onPlayerKnowledgeChange(final PlayerKnowledgeChangeEvent event) {
+        EmcLinkBlockEntity.onKnowledgeChanged(event.getPlayerUUID());
     }
 }

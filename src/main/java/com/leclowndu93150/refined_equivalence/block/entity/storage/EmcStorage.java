@@ -14,10 +14,10 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import moze_intel.projecte.api.ItemInfo;
 import moze_intel.projecte.api.capabilities.IKnowledgeProvider;
@@ -29,8 +29,19 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
     private ParentComposite parentComposite;
     private final Map<ResourceKey, Long> cachedAmounts = new HashMap<>();
 
+    // Cached resource data - invalidated when knowledge/EMC changes
+    private List<ResourceAmount> cachedResourceAmounts;
+    private Map<ItemInfo, ItemResource> itemResourceCache = new HashMap<>();
+    private BigInteger lastKnownEmc = BigInteger.ZERO;
+    private int lastKnowledgeSize = 0;
+    private boolean cacheValid = false;
+
     public EmcStorage(final EmcLinkBlockEntity owner) {
         this.owner = owner;
+    }
+
+    public void invalidateCache() {
+        cacheValid = false;
     }
 
     @Override
@@ -55,6 +66,7 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
             provider.addKnowledge(info);
             final BigInteger delta = BigInteger.valueOf(sellValue).multiply(BigInteger.valueOf(amount));
             provider.setEmc(provider.getEmc().add(delta));
+            cacheValid = false; // Invalidate cache on EMC change
             owner.onProviderChanged();
         }
         return amount;
@@ -97,6 +109,7 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
         }
         if (action == Action.EXECUTE) {
             provider.setEmc(available.subtract(cost));
+            cacheValid = false; // Invalidate cache on EMC change
             owner.onProviderChanged();
         }
         return resultAmount.longValue();
@@ -151,33 +164,47 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
         return new Amount(extracted, 0);
     }
 
+    // Reusable map for refreshCache to avoid allocations
+    private final Map<ResourceKey, Long> latestAmounts = new HashMap<>();
+
     public void refreshCache() {
         if (parentComposite == null || owner.getLevel() == null || owner.getLevel().isClientSide()) {
             return;
         }
-        final Map<ResourceKey, Long> latest = new HashMap<>();
+
+        // Reuse the map instead of creating a new one each time
+        latestAmounts.clear();
         for (ResourceAmount amount : getAll()) {
-            latest.put(amount.resource(), amount.amount());
+            latestAmounts.put(amount.resource(), amount.amount());
         }
-        for (Map.Entry<ResourceKey, Long> entry : latest.entrySet()) {
-            final long previous = cachedAmounts.getOrDefault(entry.getKey(), 0L);
-            final long delta = entry.getValue() - previous;
+
+        // Process additions and changes
+        for (Map.Entry<ResourceKey, Long> entry : latestAmounts.entrySet()) {
+            final ResourceKey key = entry.getKey();
+            final long current = entry.getValue();
+            final long previous = cachedAmounts.getOrDefault(key, 0L);
+            final long delta = current - previous;
             if (delta > 0) {
-                parentComposite.addToCache(entry.getKey(), delta);
+                parentComposite.addToCache(key, delta);
             } else if (delta < 0) {
-                parentComposite.removeFromCache(entry.getKey(), -delta);
+                parentComposite.removeFromCache(key, -delta);
             }
         }
-        for (ResourceKey previousKey : new HashSet<>(cachedAmounts.keySet())) {
-            if (!latest.containsKey(previousKey)) {
-                final long previous = cachedAmounts.get(previousKey);
+
+        // Process removals - iterate over cached keys and check if they're gone
+        final var iterator = cachedAmounts.entrySet().iterator();
+        while (iterator.hasNext()) {
+            final var entry = iterator.next();
+            if (!latestAmounts.containsKey(entry.getKey())) {
+                final long previous = entry.getValue();
                 if (previous > 0) {
-                    parentComposite.removeFromCache(previousKey, previous);
+                    parentComposite.removeFromCache(entry.getKey(), previous);
                 }
             }
         }
+
         cachedAmounts.clear();
-        cachedAmounts.putAll(latest);
+        cachedAmounts.putAll(latestAmounts);
     }
 
     private ItemInfo toPersistentInfo(final ItemResource resource) {
@@ -191,15 +218,31 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
     private List<ResourceAmount> buildResourceAmounts() {
         final Optional<IKnowledgeProvider> providerOptional = owner.getKnowledgeProvider();
         if (providerOptional.isEmpty()) {
+            cachedResourceAmounts = null;
+            cacheValid = false;
             return List.of();
         }
         final IKnowledgeProvider provider = providerOptional.get();
         final BigInteger totalEmc = provider.getEmc();
         if (totalEmc.signum() <= 0) {
+            cachedResourceAmounts = null;
+            cacheValid = false;
             return List.of();
         }
-        final List<ResourceAmount> amounts = new ArrayList<>();
-        for (ItemInfo info : provider.getKnowledge()) {
+
+        final Set<ItemInfo> knowledge = provider.getKnowledge();
+        final int currentKnowledgeSize = knowledge.size();
+
+        // Check if cache is still valid
+        if (cacheValid && cachedResourceAmounts != null
+                && totalEmc.equals(lastKnownEmc)
+                && currentKnowledgeSize == lastKnowledgeSize) {
+            return cachedResourceAmounts;
+        }
+
+        // Rebuild cache
+        final List<ResourceAmount> amounts = new ArrayList<>(currentKnowledgeSize);
+        for (ItemInfo info : knowledge) {
             final long value = IEMCProxy.INSTANCE.getValue(info);
             if (value <= 0) {
                 continue;
@@ -208,12 +251,24 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
             if (max.signum() <= 0) {
                 continue;
             }
-            final ItemResource resource = ItemResource.ofItemStack(info.createStack());
+            // Cache ItemResource to avoid repeated createStack() calls
+            ItemResource resource = itemResourceCache.get(info);
+            if (resource == null) {
+                resource = ItemResource.ofItemStack(info.createStack());
+                itemResourceCache.put(info, resource);
+            }
             amounts.add(new ResourceAmount(
                 resource,
                 max.min(BigInteger.valueOf(Long.MAX_VALUE)).longValue()
             ));
         }
+
+        // Update cache state
+        cachedResourceAmounts = amounts;
+        lastKnownEmc = totalEmc;
+        lastKnowledgeSize = currentKnowledgeSize;
+        cacheValid = true;
+
         return amounts;
     }
 }
