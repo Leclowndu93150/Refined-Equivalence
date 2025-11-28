@@ -14,7 +14,7 @@ public final class ModBlocks {
 
     public static final DeferredBlock<EmcLinkBlock> EMC_LINK = BLOCKS.register(
         "emc_link",
-        () -> new EmcLinkBlock(BlockBehaviour.Properties.of().strength(4.0F).requiresCorrectToolForDrops())
+        () -> new EmcLinkBlock(BlockBehaviour.Properties.of().strength(25.0F, 1200.0F).requiresCorrectToolForDrops())
     );
 
     private ModBlocks() {

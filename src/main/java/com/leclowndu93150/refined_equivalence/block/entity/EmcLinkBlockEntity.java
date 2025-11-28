@@ -48,7 +48,7 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
 
     private static volatile boolean worldUnloading;
 
-    // Track all active EMC Link blocks for knowledge change notifications
+    // Track all active EMC Link block for knowledge change notifications
     private static final Map<BlockPos, EmcLinkBlockEntity> ACTIVE_BLOCKS = new ConcurrentHashMap<>();
 
     private final EmcLinkNetworkNode networkNode;
