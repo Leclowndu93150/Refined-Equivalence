@@ -63,7 +63,9 @@ public final class EmcStorage implements Storage, CompositeAwareChild {
         }
         if (action == Action.EXECUTE) {
             final IKnowledgeProvider provider = providerOptional.get();
-            provider.addKnowledge(info);
+            if (provider.addKnowledge(info)) {
+                owner.syncKnowledgeChange(provider, info, true);
+            }
             final BigInteger delta = BigInteger.valueOf(sellValue).multiply(BigInteger.valueOf(amount));
             provider.setEmc(provider.getEmc().add(delta));
             cacheValid = false; // Invalidate cache on EMC change

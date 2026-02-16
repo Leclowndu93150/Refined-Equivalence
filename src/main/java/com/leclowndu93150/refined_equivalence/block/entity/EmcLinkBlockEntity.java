@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import moze_intel.projecte.api.ItemInfo;
 import moze_intel.projecte.api.capabilities.IKnowledgeProvider;
 import moze_intel.projecte.api.proxy.ITransmutationProxy;
 import net.minecraft.core.BlockPos;
@@ -224,6 +225,16 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
         final ServerPlayer ownerPlayer = serverLevel.getServer().getPlayerList().getPlayer(ownerId);
         if (ownerPlayer != null) {
             provider.syncEmc(ownerPlayer);
+        }
+    }
+
+    public void syncKnowledgeChange(final IKnowledgeProvider provider, final ItemInfo info, final boolean learned) {
+        if (!(level instanceof ServerLevel serverLevel) || ownerId == null) {
+            return;
+        }
+        final ServerPlayer ownerPlayer = serverLevel.getServer().getPlayerList().getPlayer(ownerId);
+        if (ownerPlayer != null) {
+            provider.syncKnowledgeChange(ownerPlayer, info, learned);
         }
     }
 
