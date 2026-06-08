@@ -198,6 +198,10 @@ public class EmcLinkBlockEntity extends BlockEntity implements ConfigurationCard
         return Component.translatable("message.refined_equivalence.emc_link.owner", ownerName);
     }
 
+    public UUID getOwnerId() {
+        return ownerId;
+    }
+
     public Optional<IKnowledgeProvider> getKnowledgeProvider() {
         if (ownerId == null || level == null || level.isClientSide() || level.getServer() == null) {
             return Optional.empty();
